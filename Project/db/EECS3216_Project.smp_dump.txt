@@ -1,0 +1,28 @@
+
+State Machine - |Driver|SVPWM:sp1|CURR_SEC
+Name CURR_SEC.S6 CURR_SEC.S5 CURR_SEC.S4 CURR_SEC.S3 CURR_SEC.S2 CURR_SEC.S1 
+CURR_SEC.S1 0 0 0 0 0 0 
+CURR_SEC.S2 0 0 0 0 1 1 
+CURR_SEC.S3 0 0 0 1 0 1 
+CURR_SEC.S4 0 0 1 0 0 1 
+CURR_SEC.S5 0 1 0 0 0 1 
+CURR_SEC.S6 1 0 0 0 0 1 
+
+State Machine - |Driver|inputDriver:buttonsDriver|curr_state
+Name curr_state.BOTH_PRESS curr_state.KEY1_PRESS curr_state.KEY0_PRESS curr_state.LISTEN 
+curr_state.LISTEN 0 0 0 0 
+curr_state.KEY0_PRESS 0 0 1 1 
+curr_state.KEY1_PRESS 0 1 0 1 
+curr_state.BOTH_PRESS 1 0 0 1 
+
+State Machine - |Driver|inputDriver:buttonsDriver|debouncer:deb1|curr_state
+Name curr_state.IDLE curr_state.POS_EDGE curr_state.NEG_EDGE 
+curr_state.IDLE 0 0 0 
+curr_state.NEG_EDGE 1 0 1 
+curr_state.POS_EDGE 1 1 0 
+
+State Machine - |Driver|inputDriver:buttonsDriver|debouncer:deb0|curr_state
+Name curr_state.IDLE curr_state.POS_EDGE curr_state.NEG_EDGE 
+curr_state.IDLE 0 0 0 
+curr_state.NEG_EDGE 1 0 1 
+curr_state.POS_EDGE 1 1 0 
