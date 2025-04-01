@@ -10,7 +10,7 @@ module SVPWM (
 	localparam SAMPLES = 102;
 	localparam NUMBER_STATES = 6;
 	localparam NUMBER_VECTORS = 7;
-	localparam SW_PERIOD = 50000000;
+	localparam CLOCK_PERIOD = 50000000;
 	
 	// Samples at 1 kHz. Normalized in units of clock cycle at 50MHz
 	localparam reg [15:0] SIN_LUT [0:SAMPLES-1] = '{
@@ -43,59 +43,82 @@ module SVPWM (
 	reg [24:0] SECTOR_PERIOD, VECTOR_PERIOD = 17'd0;
 	reg [24:0] SAMPLE_PERIOD, DEAD_TIME_PERIOD;
 	
-	assign SECTOR_PERIOD = (SW_PERIOD / (NUMBER_STATES * FREQ)) - 1;
+	// Period spent in each sector, we must cover all sectors within the input period time.
+	assign SECTOR_PERIOD = (CLOCK_PERIOD / (NUMBER_STATES * FREQ)) - 1;
 	
-	// Fix Dead Time Period
+	// Fix Dead Time Period. 1us at 50MHz = 50 cycles
 	assign DEAD_TIME_PERIOD = 50 * DEAD_TIME_US;
 	
-	// Update TIME for SAMPLES/NUMBER_STATES = 17 samples per sector
+	// Update TIME for SAMPLES/NUMBER_STATES = 17 samples per sector.
 	assign SAMPLE_PERIOD = NUMBER_STATES * (SECTOR_PERIOD+1) / SAMPLES - 1;
 	
 	// SVPWM parameters calculations
 	reg [24:0] AMP, TIME = 0;
 	reg [24:0] T0, T1, T2;
 	
-	assign AMP = ((AMPLITUDE * 24'h148) * (SAMPLE_PERIOD * 32'h49E7 >> 15)) >> 15; // Normalizing by 100 and Dividing by sqrt{3}
+	// Normalizing by 100 and Dividing by sqrt{3}
+	// Note 2^19 *100/sqrt{3} = 0xBD2
+	assign AMP = (AMPLITUDE * SAMPLE_PERIOD * 40'hBD2) >> 19;
+	
+	// Normalizing by max SIN_LUT value = 49999
 	assign T1 = AMP * SIN_LUT[TIME % SAMPLES] / 49999;
 	assign T2 = AMP * SIN_LUT[(TIME + (SAMPLES * 120 / 360)) % SAMPLES] / 49999;
 	assign T0 = SAMPLE_PERIOD - (T1 + T2);
 	
 	// Sector and Vector Transition
 	state_sector CURR_SEC = S1, NEXT_SEC = S1;
-	state_vector CURR_VEC = V0, NEXT_VEC = V0, next_vec = V0;
+	state_vector CURR_VEC = V0, NEXT_VEC = V0, NEXT_PREDICT_VEC = V0;
 	always_comb begin
 		case(CURR_SEC)
-			S1: begin NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S1: S2; NEXT_VEC = SECTOR_VECTORS_LUT[0][vector_index]; end
-			S2: begin NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S2: S3; NEXT_VEC = SECTOR_VECTORS_LUT[1][vector_index]; end
-			S3: begin NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S3: S4; NEXT_VEC = SECTOR_VECTORS_LUT[2][vector_index]; end
-			S4: begin NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S4: S5; NEXT_VEC = SECTOR_VECTORS_LUT[3][vector_index]; end
-			S5: begin NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S5: S6; NEXT_VEC = SECTOR_VECTORS_LUT[4][vector_index]; end
-			S6: begin NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S6: S1; NEXT_VEC = SECTOR_VECTORS_LUT[5][vector_index]; end
+			S1: begin 
+				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S1: S2; 
+				NEXT_VEC = SECTOR_VECTORS_LUT[0][vector_index]; 
+			end
+			S2: begin 
+				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S2: S3; 
+				NEXT_VEC = SECTOR_VECTORS_LUT[1][vector_index]; 
+			end
+			S3: begin 
+				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S3: S4; 
+				NEXT_VEC = SECTOR_VECTORS_LUT[2][vector_index]; 
+			end
+			S4: begin 
+				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S4: S5; 
+				NEXT_VEC = SECTOR_VECTORS_LUT[3][vector_index]; 
+			end
+			S5: begin 
+				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S5: S6; 
+				NEXT_VEC = SECTOR_VECTORS_LUT[4][vector_index]; 
+			end
+			S6: begin 
+				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S6: S1; 
+				NEXT_VEC = SECTOR_VECTORS_LUT[5][vector_index]; 
+			end
 		endcase
 		
 		case(CURR_SEC)
-			S1: next_vec = SECTOR_VECTORS_LUT[0][(vector_index == 6)? 0 : vector_index+1];
-			S2: next_vec = SECTOR_VECTORS_LUT[1][(vector_index == 6)? 0 : vector_index+1];
-			S3: next_vec = SECTOR_VECTORS_LUT[2][(vector_index == 6)? 0 : vector_index+1];
-			S4: next_vec = SECTOR_VECTORS_LUT[3][(vector_index == 6)? 0 : vector_index+1];
-			S5: next_vec = SECTOR_VECTORS_LUT[4][(vector_index == 6)? 0 : vector_index+1];
-			S6: next_vec = SECTOR_VECTORS_LUT[5][(vector_index == 6)? 0 : vector_index+1];
+			S1: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[0][(vector_index == 6)? 0 : vector_index+1];
+			S2: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[1][(vector_index == 6)? 0 : vector_index+1];
+			S3: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[2][(vector_index == 6)? 0 : vector_index+1];
+			S4: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[3][(vector_index == 6)? 0 : vector_index+1];
+			S5: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[4][(vector_index == 6)? 0 : vector_index+1];
+			S6: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[5][(vector_index == 6)? 0 : vector_index+1];
 		endcase
 		
-		// Output
-		S[2:0] = active? CURR_VEC : 0; // 0xF8 = (1)111_000
+		// Non-Inverting (top) Output
+		S[2:0] = active? CURR_VEC : 0;
 	end
 	
 	// Period Update
 	always_comb begin		
 		case(vector_index)
-			0: VECTOR_PERIOD = T0 / 4; // + DEAD_TIME * T0
+			0: VECTOR_PERIOD = T0 / 4;
 			1: VECTOR_PERIOD = T1 / 2;
 			2: VECTOR_PERIOD = T2 / 2;
-			3: VECTOR_PERIOD = T0 / 2; // - 2*DEAD_TIME * T0
+			3: VECTOR_PERIOD = T0 / 2;
 			4: VECTOR_PERIOD = T2 / 2;
 			5: VECTOR_PERIOD = T1 / 2;
-			6: VECTOR_PERIOD = T0 / 4; // + DEAD_TIME * T0
+			6: VECTOR_PERIOD = T0 / 4;
 			default: VECTOR_PERIOD = T0 / 4;
 		endcase
 	end
@@ -110,22 +133,26 @@ module SVPWM (
 			vector_index <= 0;
 			sample_counter <= 0;
 			TIME <= (TIME + 1) % SAMPLES;
+			
+		// Incrementing parameters
 		end else begin
 			vector_counter <= (vector_counter < VECTOR_PERIOD)? vector_counter + 1: 0;
 			sample_counter <= sample_counter + 1;
 			if(vector_counter >= VECTOR_PERIOD) vector_index <= (vector_index + 1) % (NUMBER_VECTORS);
 		end
 		
-		CURR_SEC <= NEXT_SEC;
-		CURR_VEC <= NEXT_VEC;
-		
-		// Dead Time Implementation
+		// Dead Time Implementation for Inverting (bottom) Output
 		// Fist output is undefined, implement a pull down resistor.
 		if(vector_counter >= (VECTOR_PERIOD - (DEAD_TIME_PERIOD / 2))) begin
-			S[3] <= (next_vec[0] == CURR_VEC[0])? ~next_vec[0]: 0;
-			S[4] <= (next_vec[1] == CURR_VEC[1])? ~next_vec[1]: 0;	
-			S[5] <= (next_vec[2] == CURR_VEC[2])? ~next_vec[2]: 0;	
-		end else if(vector_counter >= DEAD_TIME_PERIOD / 2) S[5:3] <= ~CURR_VEC;
+			S[3] <= (NEXT_PREDICT_VEC[0] == CURR_VEC[0])? ~NEXT_PREDICT_VEC[0]: 0;
+			S[4] <= (NEXT_PREDICT_VEC[1] == CURR_VEC[1])? ~NEXT_PREDICT_VEC[1]: 0;	
+			S[5] <= (NEXT_PREDICT_VEC[2] == CURR_VEC[2])? ~NEXT_PREDICT_VEC[2]: 0;	
+		end else if(vector_counter >= DEAD_TIME_PERIOD / 2) begin
+			S[5:3] <= ~CURR_VEC;
+		end
+		
+		CURR_SEC <= NEXT_SEC;
+		CURR_VEC <= NEXT_VEC;
  	end
 
 endmodule 
