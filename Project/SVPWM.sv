@@ -56,7 +56,7 @@ module SVPWM (
 	reg [24:0] AMP, TIME = 0;
 	reg [24:0] T0, T1, T2;
 	
-	// Normalizing by 100 and Dividing by sqrt{3}
+	// Normalizing by 100 and Dividing by sqrt{3}	
 	// Note 2^19 *100/sqrt{3} = 0xBD2
 	assign AMP = (AMPLITUDE * SAMPLE_PERIOD * 40'hBD2) >> 19;
 	
@@ -105,8 +105,11 @@ module SVPWM (
 			S6: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[5][(vector_index == 6)? 0 : vector_index+1];
 		endcase
 		
-		// Non-Inverting (top) Output
-		S[2:0] = active? CURR_VEC : 0;
+		// Inverting (top) Output
+		// If not active (on an emergency stop for example) hard set top values to 0
+		
+		// CHANGE THIS TO 1 WHEN IMPLEMENTING NOT GATES!
+		S[2:0] = active? ~CURR_VEC : 0;
 	end
 	
 	// Period Update
@@ -124,35 +127,54 @@ module SVPWM (
 	end
 	
 	// States Transitions
-	always_ff @(posedge clk) begin
-		sector_counter <= (sector_counter < SECTOR_PERIOD)? sector_counter + 1: 0;
-		
-		// Forcefully reset parameters
-		if((sample_counter >= SAMPLE_PERIOD) | (sector_counter >= SECTOR_PERIOD)) begin
-			vector_counter <= 0;
-			vector_index <= 0;
-			sample_counter <= 0;
-			TIME <= (TIME + 1) % SAMPLES;
+	always_ff @(posedge clk or negedge active) begin
+		if(~active) begin
+			// If not active (on an emergency stop for example) hard set bottom values to 0
 			
-		// Incrementing parameters
+			// CHANGE THIS TO 1 WHEN IMPLEMENTING NOT GATES!
+			S[5:3] <= 0;
 		end else begin
-			vector_counter <= (vector_counter < VECTOR_PERIOD)? vector_counter + 1: 0;
-			sample_counter <= sample_counter + 1;
-			if(vector_counter >= VECTOR_PERIOD) vector_index <= (vector_index + 1) % (NUMBER_VECTORS);
+			sector_counter <= (sector_counter < SECTOR_PERIOD)? sector_counter + 1: 0;
+			
+			// Forcefully reset parameters
+			// Output may be out of sync if frequency is not a divisor of system clock (50MHz)
+			if((sample_counter >= SAMPLE_PERIOD) | (sector_counter >= SECTOR_PERIOD)) begin
+				vector_counter <= 0;
+				vector_index <= 0;
+				sample_counter <= 0;
+				TIME <= (TIME + 1) % SAMPLES;
+				
+			// Incrementing parameters
+			end else begin
+				vector_counter <= (vector_counter < VECTOR_PERIOD)? vector_counter + 1: 0;
+				sample_counter <= sample_counter + 1;
+				
+				// Only increment vector_index at the end of the vector period
+				if(vector_counter >= VECTOR_PERIOD) vector_index <= (vector_index + 1) % (NUMBER_VECTORS);
+			end
+			
+			// Dead Time Implementation for Non-Inverting (bottom) Output
+			// Fist output is undefined, implement a pull down resistor.
+			if(vector_counter >= (VECTOR_PERIOD - (DEAD_TIME_PERIOD / 2))) begin
+				// Initially both signals (top and bottom) are 0, and suppose the top output
+				// goes to 1 at the beggining of a vector transition. The bottom signal waits for
+				// DEAT_TIME_PERIOD / 2 at the end of the cycle and makes a prediction of what the next vector will be
+				// (really we know what it is since the vector sequence is fixed).
+				// If the prediction is correct we assign the vector value to the bottom output
+				// (since the top output is inverted) else we set it to 0 for safety.
+			
+				S[3] <= (NEXT_PREDICT_VEC[0] == CURR_VEC[0])? NEXT_PREDICT_VEC[0]: 0;
+				S[4] <= (NEXT_PREDICT_VEC[1] == CURR_VEC[1])? NEXT_PREDICT_VEC[1]: 0;	
+				S[5] <= (NEXT_PREDICT_VEC[2] == CURR_VEC[2])? NEXT_PREDICT_VEC[2]: 0;	
+			end else if(vector_counter >= DEAD_TIME_PERIOD / 2) begin
+				// After the initial DEAD_TIME_PERIOD we set the bottom output to the current vector value 
+				// (since top output is inverted).
+				S[5:3] <= CURR_VEC;
+			end
+			
+			CURR_SEC <= NEXT_SEC;
+			CURR_VEC <= NEXT_VEC;
 		end
-		
-		// Dead Time Implementation for Inverting (bottom) Output
-		// Fist output is undefined, implement a pull down resistor.
-		if(vector_counter >= (VECTOR_PERIOD - (DEAD_TIME_PERIOD / 2))) begin
-			S[3] <= (NEXT_PREDICT_VEC[0] == CURR_VEC[0])? ~NEXT_PREDICT_VEC[0]: 0;
-			S[4] <= (NEXT_PREDICT_VEC[1] == CURR_VEC[1])? ~NEXT_PREDICT_VEC[1]: 0;	
-			S[5] <= (NEXT_PREDICT_VEC[2] == CURR_VEC[2])? ~NEXT_PREDICT_VEC[2]: 0;	
-		end else if(vector_counter >= DEAD_TIME_PERIOD / 2) begin
-			S[5:3] <= ~CURR_VEC;
-		end
-		
-		CURR_SEC <= NEXT_SEC;
-		CURR_VEC <= NEXT_VEC;
  	end
 
 endmodule 
