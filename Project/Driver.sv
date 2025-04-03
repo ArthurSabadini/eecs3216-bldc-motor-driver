@@ -1,19 +1,20 @@
 module Driver (
 	input wire CLOCK_50,
-	input wire [1:0] KEY,        // Buttons
+	input wire [1:0] KEY,        	// Buttons
 	output wire [5:0] ARDUINO_IO, // D0 and D1 Arduino pins
 	output wire [6:0] HEX5, HEX4, HEX3, HEX2, HEX1, HEX0	    // Seven segment display to display operation mode
 );
 
 	localparam FREQ_SAMPLES = 5;
-	localparam reg [13:0] FREQ_VALS [0:4] = '{4'd3, 14'd5, 14'd10, 14'd15, 14'd20};//'{14'd1, 14'd2, 14'd3, 14'd4, 14'd5};
+	localparam reg [13:0] FREQ_VALS [0:4] = '{4'd3, 14'd5, 14'd6, 14'd7, 14'd8};//14'd10, 14'd15, 14'd20};//'{14'd1, 14'd2, 14'd3, 14'd4, 14'd5};
 	localparam reg [6:0]  AMP_VALS [0:4]  = '{7'd20, 7'd40, 7'd60, 7'd80, 7'd100};
 	
 	localparam F = 7'h0E; // 000_1110 = 0E
 	localparam A = 7'h08; // 000_1000 = 08
 	localparam H = 7'h09; // 000_1001 = 09 
 	
-	reg KEY0, KEY1, BOTH_KEYS, ACTIVE = 1;
+	// Initially not active
+	reg KEY0, KEY1, BOTH_KEYS, ACTIVE = 0;
 	reg [2:0] FREQ_OFFSET = 0, AMP_OFFSET = 3'd4;
 	
 	inputDriver buttonsDriver(.clk(CLOCK_50), .KEY(KEY), .key0(KEY0), .key1(KEY1), .both(BOTH_KEYS));
