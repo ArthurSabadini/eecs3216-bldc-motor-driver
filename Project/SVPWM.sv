@@ -34,30 +34,34 @@ module SVPWM (
 	
 	localparam state_vector SECTOR_VECTORS_LUT [0:NUMBER_STATES-1][0:NUMBER_VECTORS-1] = '{
 		'{V0, V1, V2, V7, V2, V1, V0}, '{V0, V3, V2, V7, V2, V3, V0}, 
-		'{V0, V3, V4, V7, V4, V3, V0}, '{V0, V5, V4, V7, V4, V5, V0}, 
+		'{V0, V3, V4, V7, V4, V3, V0}, '{V0, V5, V4, V7, V4, V5, V0},
 		'{V0, V5, V6, V7, V6, V5, V0}, '{V0, V1, V6, V7, V6, V1, V0}
 	};
 	
 	reg [2:0] vector_index = 0;
-	reg [24:0] sector_counter = 0, vector_counter = 0, sample_counter = 0;
-	reg [24:0] SECTOR_PERIOD, VECTOR_PERIOD = 17'd0;
-	reg [24:0] SAMPLE_PERIOD, DEAD_TIME_PERIOD;
+	reg [21:0] sector_counter = 0, vector_counter = 0, sample_counter = 0;
+	reg [21:0] SECTOR_PERIOD, VECTOR_PERIOD = 21'd0;
+	reg [21:0] SAMPLE_PERIOD, DEAD_TIME_PERIOD;
 	
 	// Period spent in each sector, we must cover all sectors within the input period time.
 	assign SECTOR_PERIOD = (CLOCK_PERIOD / (NUMBER_STATES * FREQ)) - 1;
 	
 	// Fix Dead Time Period. 1us at 50MHz = 50 cycles
-	assign DEAD_TIME_PERIOD = 50 * DEAD_TIME_US;
+	//assign DEAD_TIME_PERIOD = 50 * DEAD_TIME_US;
+	
+	// 20ns at 50MHz = 1 cycle
+	assign DEAD_TIME_PERIOD = DEAD_TIME_US / 20;
 	
 	// Update TIME for SAMPLES/NUMBER_STATES = 17 samples per sector.
 	assign SAMPLE_PERIOD = NUMBER_STATES * (SECTOR_PERIOD+1) / SAMPLES - 1;
 	
 	// SVPWM parameters calculations
-	reg [24:0] AMP, TIME = 0;
-	reg [24:0] T0, T1, T2;
+	reg [6:0] TIME = 0;
+	reg [17:0] AMP;
+	reg [32:0] T0, T1, T2;
 	
 	// Normalizing by 100 and Dividing by sqrt{3}	
-	// Note 2^19 *100/sqrt{3} = 0xBD2
+	// Note 2^19 */(100*sqrt{3}) = 0xBD2
 	assign AMP = (AMPLITUDE * SAMPLE_PERIOD * 40'hBD2) >> 19;
 	
 	// Normalizing by max SIN_LUT value = 49999
@@ -109,7 +113,7 @@ module SVPWM (
 		// If not active (on an emergency stop for example) hard set top values to 0
 		
 		// CHANGE THIS TO 1 WHEN IMPLEMENTING NOT GATES!
-		S[2:0] = active? ~CURR_VEC : 0;
+		S[2:0] = active? ~CURR_VEC : 3'b111;
 	end
 	
 	// Period Update
@@ -132,7 +136,7 @@ module SVPWM (
 			// If not active (on an emergency stop for example) hard set bottom values to 0
 			
 			// CHANGE THIS TO 1 WHEN IMPLEMENTING NOT GATES!
-			S[5:3] <= 0;
+			S[5:3] <= 3'b111;
 		end else begin
 			sector_counter <= (sector_counter < SECTOR_PERIOD)? sector_counter + 1: 0;
 			
@@ -155,7 +159,7 @@ module SVPWM (
 			
 			// Dead Time Implementation for Non-Inverting (bottom) Output
 			// Fist output is undefined, implement a pull down resistor.
-			if(vector_counter >= (VECTOR_PERIOD - (DEAD_TIME_PERIOD / 2))) begin
+			if(vector_counter >= (VECTOR_PERIOD - (DEAD_TIME_PERIOD))) begin
 				// Initially both signals (top and bottom) are 0, and suppose the top output
 				// goes to 1 at the beggining of a vector transition. The bottom signal waits for
 				// DEAT_TIME_PERIOD / 2 at the end of the cycle and makes a prediction of what the next vector will be
@@ -166,7 +170,7 @@ module SVPWM (
 				S[3] <= (NEXT_PREDICT_VEC[0] == CURR_VEC[0])? NEXT_PREDICT_VEC[0]: 0;
 				S[4] <= (NEXT_PREDICT_VEC[1] == CURR_VEC[1])? NEXT_PREDICT_VEC[1]: 0;	
 				S[5] <= (NEXT_PREDICT_VEC[2] == CURR_VEC[2])? NEXT_PREDICT_VEC[2]: 0;	
-			end else if(vector_counter >= DEAD_TIME_PERIOD / 2) begin
+			end else if(vector_counter >= DEAD_TIME_PERIOD) begin
 				// After the initial DEAD_TIME_PERIOD we set the bottom output to the current vector value 
 				// (since top output is inverted).
 				S[5:3] <= CURR_VEC;
