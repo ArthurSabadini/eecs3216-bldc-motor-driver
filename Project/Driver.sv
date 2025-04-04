@@ -15,11 +15,11 @@ module Driver (
 	localparam DEAD_TIME_SAMPLES = 5;
 	localparam reg [13:0] DEAD_TIME_VALS [0:4] = '{14'd300, 14'd500, 14'd700, 14'd1000, 14'd3000};
 	
+	// Letters used for display
 	localparam F = 7'h0E; // 000_1110 = 0E
 	localparam A = 7'h08; // 000_1000 = 08
 	localparam H = 7'h09; // 000_1001 = 09 
 	localparam D = 7'h21; // 010_0001 = 21
-	
 	localparam U = 7'b100_0001; // 100_0001 = 41
 	localparam N = 7'b010_1011;
 	localparam S = 7'b001_0010;
@@ -52,11 +52,11 @@ module Driver (
 	SevenSegDecoder deco1(.inp(freq_digit), .leds(freq_digit_hex));
 	SevenSegDecoder deco2(.inp(freq_ones_digit), .leds(freq_ones_digit_hex));
 	
-	// Parameters to be displayed
+	// Amplitude Parameters to be displayed
 	reg [11:0] amp_digit = 12'h020;
 	reg [20:0] amp_digits_hex;
 	
-	// Parameters to be displayed
+	// Dead Time Parameters to be displayed
 	reg [11:0] dead_time_digit = 12'h300;
 	reg [20:0] dead_time_digits_hex;
 	
