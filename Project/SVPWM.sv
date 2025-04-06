@@ -77,36 +77,33 @@ module SVPWM (
 			S1: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S1: S2; 
 				NEXT_VEC = SECTOR_VECTORS_LUT[0][vector_index]; 
+				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[0][(vector_index == 6)? 0 : vector_index+1];
 			end
 			S2: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S2: S3; 
 				NEXT_VEC = SECTOR_VECTORS_LUT[1][vector_index]; 
+				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[1][(vector_index == 6)? 0 : vector_index+1];
 			end
 			S3: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S3: S4; 
-				NEXT_VEC = SECTOR_VECTORS_LUT[2][vector_index]; 
+				NEXT_VEC = SECTOR_VECTORS_LUT[2][vector_index];
+				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[2][(vector_index == 6)? 0 : vector_index+1];
 			end
 			S4: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S4: S5; 
 				NEXT_VEC = SECTOR_VECTORS_LUT[3][vector_index]; 
+				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[3][(vector_index == 6)? 0 : vector_index+1];	
 			end
 			S5: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S5: S6; 
-				NEXT_VEC = SECTOR_VECTORS_LUT[4][vector_index]; 
+				NEXT_VEC = SECTOR_VECTORS_LUT[4][vector_index];
+				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[4][(vector_index == 6)? 0 : vector_index+1];
 			end
 			S6: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S6: S1; 
 				NEXT_VEC = SECTOR_VECTORS_LUT[5][vector_index]; 
+				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[5][(vector_index == 6)? 0 : vector_index+1];
 			end
-		endcase
-		
-		case(CURR_SEC)
-			S1: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[0][(vector_index == 6)? 0 : vector_index+1];
-			S2: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[1][(vector_index == 6)? 0 : vector_index+1];
-			S3: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[2][(vector_index == 6)? 0 : vector_index+1];
-			S4: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[3][(vector_index == 6)? 0 : vector_index+1];
-			S5: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[4][(vector_index == 6)? 0 : vector_index+1];
-			S6: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[5][(vector_index == 6)? 0 : vector_index+1];
 		endcase
 		
 		// Inverting (top) Output
