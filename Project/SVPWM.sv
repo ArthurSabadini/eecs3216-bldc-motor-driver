@@ -77,39 +77,40 @@ module SVPWM (
 			S1: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S1: S2; 
 				NEXT_VEC = SECTOR_VECTORS_LUT[0][vector_index]; 
-				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[0][(vector_index == 6)? 0 : vector_index+1];
 			end
 			S2: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S2: S3; 
 				NEXT_VEC = SECTOR_VECTORS_LUT[1][vector_index]; 
-				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[1][(vector_index == 6)? 0 : vector_index+1];
 			end
 			S3: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S3: S4; 
-				NEXT_VEC = SECTOR_VECTORS_LUT[2][vector_index];
-				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[2][(vector_index == 6)? 0 : vector_index+1];
+				NEXT_VEC = SECTOR_VECTORS_LUT[2][vector_index]; 
 			end
 			S4: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S4: S5; 
 				NEXT_VEC = SECTOR_VECTORS_LUT[3][vector_index]; 
-				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[3][(vector_index == 6)? 0 : vector_index+1];	
 			end
 			S5: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S5: S6; 
-				NEXT_VEC = SECTOR_VECTORS_LUT[4][vector_index];
-				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[4][(vector_index == 6)? 0 : vector_index+1];
+				NEXT_VEC = SECTOR_VECTORS_LUT[4][vector_index]; 
 			end
 			S6: begin 
 				NEXT_SEC = (sector_counter < SECTOR_PERIOD)? S6: S1; 
 				NEXT_VEC = SECTOR_VECTORS_LUT[5][vector_index]; 
-				NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[5][(vector_index == 6)? 0 : vector_index+1];
 			end
 		endcase
 		
-		// Inverting (top) Output
-		// If not active (on an emergency stop for example) hard set top values to 0
+		case(CURR_SEC)
+			S1: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[0][(vector_index == 6)? 0 : vector_index+1];
+			S2: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[1][(vector_index == 6)? 0 : vector_index+1];
+			S3: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[2][(vector_index == 6)? 0 : vector_index+1];
+			S4: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[3][(vector_index == 6)? 0 : vector_index+1];
+			S5: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[4][(vector_index == 6)? 0 : vector_index+1];
+			S6: NEXT_PREDICT_VEC = SECTOR_VECTORS_LUT[5][(vector_index == 6)? 0 : vector_index+1];
+		endcase
 		
-		// CHANGE THIS TO 1 WHEN IMPLEMENTING NOT GATES!
+		// Inverting (top) Output
+		// If not active (on an emergency stop for example) hard set top values to 1 to turn off
 		S[2:0] = active? ~CURR_VEC : 3'b111;
 	end
 	
@@ -130,9 +131,7 @@ module SVPWM (
 	// States Transitions
 	always_ff @(posedge clk or negedge active) begin
 		if(~active) begin
-			// If not active (on an emergency stop for example) hard set bottom values to 0
-			
-			// CHANGE THIS TO 1 WHEN IMPLEMENTING NOT GATES!
+			// If not active (on an emergency stop for example) hard set bottom values to 1 to turn off
 			S[5:3] <= 3'b111;
 		end else begin
 			sector_counter <= (sector_counter < SECTOR_PERIOD)? sector_counter + 1: 0;
