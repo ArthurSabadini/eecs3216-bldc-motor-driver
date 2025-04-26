@@ -4,3 +4,5 @@ We implemented our own circuit driver for a BLDC motor, controlling it using the
 - This repository contains a runnable project that can be compiled using the Quartus Prime editor. The main file is Driver.sv, note we did not upload the simulation files as those would be toolarge.
 
 - Outputs of the module are Arduino Pins D0-D5, note the output is inverted! As extra circuitry had to be implemented  on the input to level up the logic level of the FPGA (3.3v).
+
+- The video demonstration of the project can be seen in the following link https://www.youtube.com/watch?si=b8xfoCtHZS__AAA1&v=ajDVEePGOGo&feature=youtu.be.
