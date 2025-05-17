@@ -10,7 +10,7 @@ We implemented our own circuit driver for a BLDC motor, controlling it using the
 - The video demonstration of the project can be seen in the following link https://www.youtube.com/watch?si=b8xfoCtHZS__AAA1&v=ajDVEePGOGo&feature=youtu.be.
 
 # Video Demo
-[![Watch the video](https://img.youtube.com/vi/YOUR_VIDEO_ID/hqdefault.jpg)](https://www.youtube.com/watch?si=b8xfoCtHZS__AAA1&v=ajDVEePGOGo&feature=youtu.be)
+[![Watch the video](Images/circuit_driver.jpeg)](https://www.youtube.com/watch?si=b8xfoCtHZS__AAA1&v=ajDVEePGOGo&feature=youtu.be)
 
 ## 🛠️ Technologies & Tools
 ![Verilog](https://img.shields.io/badge/-Verilog-blue?logo=verilog&logoColor=white&style=plastic)
