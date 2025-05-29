@@ -13,8 +13,8 @@ We implemented our own circuit driver for a BLDC motor, controlling it using the
 [![Watch the video](Images/circuit_driver.jpeg)](https://www.youtube.com/watch?si=b8xfoCtHZS__AAA1&v=ajDVEePGOGo&feature=youtu.be)
 
 # Documentation
-- The proposal report of the project can be found here [Proposal Report](.Reports/EECS%203216%20Proposal.pdf). It contains the initial idea, hardware design and control models.
-- The final report of the project can be found here [Final Report](.Reports/EECS%203216%20Project%20Report.pdf). It contains the final digital design, software/algorithm explanation, hardware design, schematic, control model corrections, simulations and additional hardware footage.
+- The proposal report of the project can be found here [Proposal Report](./Reports/EECS%203216%20Proposal.pdf). It contains the initial idea, hardware design and control models.
+- The final report of the project can be found here [Final Report](./Reports/EECS%203216%20Project%20Report.pdf). It contains the final digital design, software/algorithm explanation, hardware design, schematic, control model corrections, simulations and additional hardware footage.
 
 ## 🛠️ Technologies & Tools
 ![Verilog](https://img.shields.io/badge/-Verilog-blue?logo=verilog&logoColor=white&style=plastic)
