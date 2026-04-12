@@ -1,4 +1,4 @@
-module Driver (
+module TopLevel (
 	input wire 	CLOCK_50,
 	input wire 	[1:0] KEY,        								// Buttons
 	output wire [5:0] ARDUINO_IO, 								// D0 - D5 Arduino pins
